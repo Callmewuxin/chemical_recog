@@ -73,12 +73,13 @@ var doDraw = Sketch.create({
 		if (event.button == 2 && charlist.length > 0){
 			console.log("点击右键事件");
 			deleteMark();
+			delContext(canvasChosen);
 		}
 		//console.log(this);
 		startDraw=1;
 		stroke++;
 		strokelist.push([]);
-		console.log(stroke);
+		// console.log(stroke);
         //pointCoodi.push({x:this.mouse.ox,y:this.mouse.oy});
 		if(this.mouse.oy>PreLineY){
 			isNextLine = true;
@@ -367,7 +368,6 @@ getRecogResult = function(){
 	charlist.push(strokeList);
 	strokeList = [];
 	console.log("一个字符写完了");
-	/*
 	$.ajax({
 		type : 'get',
 		url : '/project/index',
@@ -389,14 +389,12 @@ getRecogResult = function(){
 			alert("getRecogResult异常！"+e.responseText);
 		}
 	});
-	*/
 };
 
 getRecogResultElse = function(){
 	charlist.push(strokeList);
 	strokeList = [];
 	console.log("一个字符写完了");
-	/*
 	$.ajax({
 		type : 'get',
 		url : '/project/index',
@@ -494,7 +492,6 @@ getRecogResultElse = function(){
 			alert("getRecogResult异常！"+e.responseText);
 		}
 	});
-	*/
 };
 
 function createDoubleTable(row, col ,positionX ,positionY){
@@ -548,9 +545,14 @@ function createTableCanvas(row, cols,positionX,positionY) {
     midOfView();
 }
 
-
+var cell_char_list = {};
 function cellMonitor(elementCanvas,containerCanvas)
 {
+	var id = elementCanvas.id;
+	var cell_point = [];
+	var cell_stroke = [];
+	cell_char_list.id = [];
+
 	var doDraw1 = Sketch.create({
 		container: containerCanvas,
 		element:elementCanvas,
@@ -572,6 +574,11 @@ function cellMonitor(elementCanvas,containerCanvas)
 			startDraw=1;
 			isTable = true;
 			canvasChosen = elementCanvas;
+			if (event.button == 2 && cell_char_list.id.length > 0){
+				console.log("点击右键事件");
+				deleteCellMark(id);
+				delContext(canvasChosen);
+			}
 			//pointCoodi.push({x:this.mouse.ox,y:this.mouse.oy});
 		},
 		touchmove: function() {
@@ -588,6 +595,7 @@ function cellMonitor(elementCanvas,containerCanvas)
 				this.lineTo( touch.x, touch.y );
 				this.stroke();
 				pointCoodi.push({x:touch.ox,y:touch.oy});
+				cell_point.push({x:touch.ox,y:touch.oy});
 				}
 			}   
 		},
@@ -596,26 +604,30 @@ function cellMonitor(elementCanvas,containerCanvas)
 			var mouseX = this.mouse.ox;
 			var mouseY = this.mouse.oy;
 			pointCoodi.push({x:this.mouse.ox,y:this.mouse.oy});
+			cell_point.push({x:this.mouse.ox,y:this.mouse.oy});
+			cell_stroke.push(cell_point);
 			if(pointCoodi.length!=0)
+			{
 				postCoodi();
-			
-			if(signal==0){
-				signal=1;//互斥信号量保证同时只有一个函数在等待执行
-				var handler=setTimeout(function(){
-					signal=0;				
-					cellContext(id, specialCharLabel[10]);
-					clearTimeout(handler);
-					if(writeType == 1){
-						getRecogResult();
-					}else{
-						getRecogResultElse();
-					}
-				},getTime);//test，延迟1.5秒进行笔迹路径post和识别执行
+				cell_point = [];
 			}
+			handler=setTimeout(function(){
+				signal=0;				
+				if(writeType == 1){
+					getRecogResult();
+					cell_char_list.id.push(cell_stroke);
+					cell_stroke = [];
+				}else{
+					getRecogResultElse();
+					cell_char_list.id.push(cell_stroke);
+					cell_stroke = [];
+				}
+				clearTimeout(handler);
+			},getTime);//test，延迟1.5秒进行笔迹路径post和识别执行
 		}
-	
 	});
 }
+
 $(function(){
     $(".cw-switch").click(function() {
         if($(this).hasClass('cw-switch-checked')){
@@ -682,10 +694,69 @@ function deleteMark()
 	console.log("xright ", xright);
 	console.log("ytop ", ytop);
 	console.log("ybottom", ybottom);
-
 	ctx.clearRect(xleft-3, ytop-3, xright - xleft  + 10, ybottom - ytop + 10);
 
 	// 弹出字符笔迹数组
 	charlist.pop();
-	// result.pop();
+	result.pop();
+}
+
+function delContext(canvasChosen){
+	var strlist, dellist;
+	if(!isTable){
+		strlist = ViewStyle.innerHTML;
+		dellist = strlist.slice(0, strlist.length-1);
+		ViewStyle.innerHTML = dellist;
+		midOfView();
+	}
+	else{	
+		console.log(canvasChosen.id);
+		var canvasId = canvasChosen.id;
+		var CellId = "Cell"+canvasId;
+		console.log(CellId);
+		chosenCell = document.getElementById(CellId);
+		strlist = chosenCell.innerHTML;
+		dellist = strlist.slice(0, strlist.length-1);
+		chosenCell.innerHTML = dellist;
+	}
+	
+}
+
+
+function deleteCellMark(cellid)
+{
+	
+	// 清空字迹
+	var charLength = cell_char_list.cellid.length;
+	// console.log("charLength: " + charLength);
+	// console.log(charlist[charLength - 1]);
+	var xlist = [];
+	var ylist = [];
+	for (var i=0; i< cell_char_list.cellid[charLength - 1].length; i++) // 笔画数组
+	{
+		// console.log("笔画数组 " + charlist[charLength - 1][i]);
+		for (j=0; j< cell_char_list.cellid[charLength - 1][i].length; j++) // 点数组
+		{
+			// console.log("点数组 " + charlist[charLength - 1][i][j]);
+			xlist.push(cell_char_list.cellid[charLength - 1][i][j].x);
+			ylist.push(cell_char_list.cellid[charLength - 1][i][j].y);
+		}
+	}
+	console.log("xlist ", xlist);
+	console.log("ylist ", ylist);
+	var xleft, xright, ytop, ybottom;
+	xleft = Math.min(...xlist);
+	xright = Math.max(...xlist);
+	ytop = Math.min(...ylist);
+	ybottom = Math.max(...ylist);
+	console.log("xleft ", xleft);
+	console.log("xright ", xright);
+	console.log("ytop ", ytop);
+	console.log("ybottom", ybottom);
+	var cellCanvas = document.getElementById(cellid);
+	cellCanvas.clearRect(xleft-3, ytop-3, xright - xleft  + 10, ybottom - ytop + 10);
+
+	// 弹出字符笔迹数组
+	cell_char_list.cellid.pop();
+	result.pop();
 }
